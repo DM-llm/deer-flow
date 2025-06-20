@@ -41,30 +41,72 @@ export function ResearchActivitiesBlock({
     state.researchActivityIds.get(researchId),
   )!;
   const ongoing = useStore((state) => state.ongoingResearchId === researchId);
+  
+  // 提前获取所有消息，避免在map中使用hook
+  const messages = activityIds.map(id => useMessage(id));
+  
+  // 过滤出需要显示的消息
+  const validActivities = activityIds.map((activityId, i) => {
+    const message = messages[i];
+    const shouldShow = message && (
+      // 显示有工具调用的消息
+      (message.toolCalls && message.toolCalls.length > 0) ||
+      // 显示研究员的非空内容消息（但排除第一个research_start消息）
+      (message.agent === "researcher" && message.content && !message.content.includes("开始研究调查")) ||
+      // 显示编码员的消息
+      (message.agent === "coder" && message.content)
+    );
+    
+    return shouldShow ? { activityId, index: i } : null;
+  }).filter(Boolean);
+  
   return (
     <>
       <ul className={cn("flex flex-col py-4", className)}>
-        {activityIds.map(
-          (activityId, i) =>
-            i !== 0 && (
-              <motion.li
-                key={activityId}
-                style={{ transition: "all 0.4s ease-out" }}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.4,
-                  ease: "easeOut",
-                }}
-              >
-                <ActivityMessage messageId={activityId} />
-                <ActivityListItem messageId={activityId} />
-                {i !== activityIds.length - 1 && <hr className="my-8" />}
-              </motion.li>
-            ),
-        )}
+        {validActivities.map(({ activityId, index }, displayIndex) => (
+          <motion.li
+            key={activityId}
+            style={{ transition: "all 0.4s ease-out" }}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.4,
+              ease: "easeOut",
+            }}
+          >
+            <ActivityMessage messageId={activityId} />
+            <ActivityListItem messageId={activityId} />
+            {displayIndex !== validActivities.length - 1 && <hr className="my-8" />}
+          </motion.li>
+        ))}
       </ul>
-      {ongoing && <LoadingAnimation className="mx-4 my-12" />}
+      {ongoing && (
+        <>
+          <LoadingAnimation className="mx-4 my-12" />
+          {/* 调试按钮 - 开发环境下显示 */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mx-4 my-4 text-center">
+              <button
+                onClick={() => {
+                  // 动态导入resetOngoingResearch函数
+                  import("~/core/store").then(({ resetOngoingResearch, getOngoingResearchInfo }) => {
+                    console.log("当前研究状态:", getOngoingResearchInfo());
+                    const reset = resetOngoingResearch();
+                    if (reset) {
+                      console.log("已重置研究状态");
+                    } else {
+                      console.log("没有需要重置的研究状态");
+                    }
+                  });
+                }}
+                className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+              >
+                🔧 重置研究状态
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </>
   );
 }

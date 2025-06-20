@@ -5,15 +5,27 @@ import { type StreamEvent } from "./StreamEvent";
 
 export async function* fetchStream(
   url: string,
-  init: RequestInit,
+  init: RequestInit & { searchParams?: URLSearchParams },
 ): AsyncIterable<StreamEvent> {
-  const response = await fetch(url, {
-    method: "POST",
+  // 构建完整的URL，包含查询参数
+  let fullUrl = url;
+  if (init.searchParams) {
+    const separator = url.includes('?') ? '&' : '?';
+    fullUrl = `${url}${separator}${init.searchParams.toString()}`;
+  }
+  
+  // 从init中移除searchParams，避免传递给fetch
+  const { searchParams, ...fetchInit } = init;
+  
+  const response = await fetch(fullUrl, {
+    // 使用传入的method，默认为POST以保持向后兼容
+    method: fetchInit.method || "POST",
     headers: {
-      "Content-Type": "application/json",
       "Cache-Control": "no-cache",
+      // 如果是GET请求，不需要Content-Type
+      ...(fetchInit.method === "GET" ? {} : { "Content-Type": "application/json" }),
     },
-    ...init,
+    ...fetchInit,
   });
   if (response.status !== 200) {
     throw new Error(`Failed to fetch from ${url}: ${response.status}`);

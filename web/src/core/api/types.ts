@@ -29,7 +29,7 @@ interface GenericEvent<T extends string, D extends object> {
     thread_id: string;
     agent: "coordinator" | "planner" | "researcher" | "coder" | "reporter";
     role: "user" | "assistant" | "tool";
-    finish_reason?: "stop" | "tool_calls" | "interrupt";
+    finish_reason?: "stop" | "tool_calls" | "interrupt" | "completed";
   } & D;
 }
 
@@ -76,9 +76,36 @@ export interface InterruptEvent
     }
   > {}
 
+// 额外事件：replay_end / error / research_end
+
+export interface ReplayEndEvent extends GenericEvent<
+  "replay_end",
+  {
+    message?: string;
+  }
+> {}
+
+export interface ErrorEvent extends GenericEvent<
+  "error",
+  {
+    message: string;
+  }
+> {}
+
+export interface ResearchEndEvent extends GenericEvent<
+  "research_end",
+  {
+    research_id: string;
+    status: "completed";
+  }
+> {}
+
 export type ChatEvent =
   | MessageChunkEvent
   | ToolCallsEvent
   | ToolCallChunksEvent
   | ToolCallResultEvent
-  | InterruptEvent;
+  | InterruptEvent
+  | ReplayEndEvent
+  | ErrorEvent
+  | ResearchEndEvent;

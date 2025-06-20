@@ -127,23 +127,36 @@ def planner_node(
     logger.info(f"Planner response: {full_response}")
 
     try:
-        curr_plan = json.loads(repair_json_output(full_response))
-    except json.JSONDecodeError:
-        logger.warning("Planner response is not a valid JSON")
+        repaired_json = repair_json_output(full_response)
+        curr_plan = json.loads(repaired_json)
+        logger.info(f"成功解析JSON，键: {list(curr_plan.keys()) if isinstance(curr_plan, dict) else 'not dict'}")
+    except json.JSONDecodeError as e:
+        logger.warning(f"Planner response is not a valid JSON: {e}")
+        logger.debug(f"Failed to parse: {full_response[:500]}...")
         if plan_iterations > 0:
             return Command(goto="reporter")
         else:
             return Command(goto="__end__")
+    
     if curr_plan.get("has_enough_context"):
         logger.info("Planner response has enough context.")
-        new_plan = Plan.model_validate(curr_plan)
-        return Command(
-            update={
-                "messages": [AIMessage(content=full_response, name="planner")],
-                "current_plan": new_plan,
-            },
-            goto="reporter",
-        )
+        try:
+            new_plan = Plan.model_validate(curr_plan)
+            return Command(
+                update={
+                    "messages": [AIMessage(content=full_response, name="planner")],
+                    "current_plan": new_plan,
+                },
+                goto="reporter",
+            )
+        except Exception as e:
+            logger.error(f"Plan validation failed: {e}")
+            logger.debug(f"Invalid plan data: {curr_plan}")
+            # 如果验证失败，尝试修复计划或跳过
+            if plan_iterations > 0:
+                return Command(goto="reporter")
+            else:
+                return Command(goto="__end__")
     return Command(
         update={
             "messages": [AIMessage(content=full_response, name="planner")],

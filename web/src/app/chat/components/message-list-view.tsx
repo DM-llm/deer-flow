@@ -267,7 +267,16 @@ function ResearchCard({
   const msg = useResearchMessage(researchId);
   const title = useMemo(() => {
     if (msg) {
+      try {
+        // 如果消息还在流式传输且内容可能不完整，返回默认标题
+        if (msg.isStreaming && msg.content && !msg.content.trim().endsWith('}')) {
+          return "";
+        }
       return parseJSON(msg.content ?? "", { title: "" }).title;
+      } catch (error) {
+        console.warn("ResearchCard JSON解析失败:", error, "内容:", msg.content);
+        return "";
+      }
     }
     return undefined;
   }, [msg]);
@@ -437,8 +446,18 @@ function PlanCard({
     thought?: string;
     steps?: { title?: string; description?: string }[];
   }>(() => {
+    try {
+      // 如果消息还在流式传输且内容可能不完整，返回空对象
+      if (message.isStreaming && message.content && !message.content.trim().endsWith('}')) {
+        console.debug("消息还在流式传输中，暂时跳过JSON解析");
+        return {};
+      }
     return parseJSON(message.content ?? "", {});
-  }, [message.content]);
+    } catch (error) {
+      console.warn("PlanCard JSON解析失败:", error, "内容:", message.content);
+      return {};
+    }
+  }, [message.content, message.isStreaming]);
 
   const reasoningContent = message.reasoningContent;
   const hasMainContent = Boolean(

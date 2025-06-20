@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def repair_json_output(content: str) -> str:
     """
     Repair and normalize JSON output.
-
+    
     This function handles various formats including:
     - Regular JSON objects
     - JSON wrapped in code blocks
@@ -65,6 +65,35 @@ def repair_json_output(content: str) -> str:
 
             # 【修复】尝试清理可能的多余内容
             content = content.strip()
+            
+            # 【修复】处理数学公式中的反斜杠转义问题
+            # 替换常见的LaTeX数学符号，避免JSON解析错误
+            math_replacements = {
+                r'\(': r'\\(',      # 数学公式开始
+                r'\)': r'\\)',      # 数学公式结束
+                r'\[': r'\\[',      # 数学公式开始
+                r'\]': r'\\]',      # 数学公式结束
+                r'\frac': r'\\frac',  # 分数
+                r'\sum': r'\\sum',    # 求和
+                r'\int': r'\\int',    # 积分
+                r'\sqrt': r'\\sqrt',  # 平方根
+                r'\alpha': r'\\alpha',  # 希腊字母
+                r'\beta': r'\\beta',
+                r'\gamma': r'\\gamma',
+                r'\delta': r'\\delta',
+                r'\epsilon': r'\\epsilon',
+                r'\theta': r'\\theta',
+                r'\lambda': r'\\lambda',
+                r'\mu': r'\\mu',
+                r'\pi': r'\\pi',
+                r'\sigma': r'\\sigma',
+                r'\omega': r'\\omega',
+            }
+            
+            for original, replacement in math_replacements.items():
+                if original in content:
+                    content = content.replace(original, replacement)
+                    logger.debug(f"替换数学符号: {original} -> {replacement}")
             
             # 如果内容包含多个JSON对象，只取第一个完整的
             if content.count('{') > content.count('}'):

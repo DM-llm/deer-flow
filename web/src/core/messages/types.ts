@@ -21,7 +21,7 @@ export interface Message {
   reasoningContentChunks?: string[];
   toolCalls?: ToolCallRuntime[];
   options?: Option[];
-  finishReason?: "stop" | "interrupt" | "tool_calls";
+  finishReason?: "stop" | "interrupt" | "tool_calls" | "completed";
   interruptFeedback?: string;
   resources?: Array<Resource>;
 }

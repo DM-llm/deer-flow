@@ -26,3 +26,10 @@ conf.yaml
 # coverage report
 coverage.xml
 coverage/
+docs/【2025.06.13】异步化langgraph执行.pdf
+worker.log
+web/src/core/utils/json copy.ts
+web/src/core/messages/merge-message copy.ts
+web/src/app/chat/components/message-list-view copy.tsx
+web/src/app/chat/components/research-activities-block copy.tsx
+src/utils/json_utils copy.py
